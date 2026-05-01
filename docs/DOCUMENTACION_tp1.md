@@ -93,3 +93,10 @@ De forma que el esquema de la red privada queda:
 # Diagrama de la red
 ![[diagrama_red.png]]
 De todas maneras adjunto tmb el pdf correspondiente
+
+# Solucion en codigo con Mininet
+Primero hice desde la interfaz grafica una sede para ver como la inicializaba MiniEdit, luego limpie los import basura del codigo, define la clase para instanciar el Linux Router (host con una inyeccion de comando que lo hace pasar a "ser un Router"). 
+
+Despues aplique la logica de subneto que ya hice antes a codigo, dinamico y escalable segun el parametro de entrada del argparse
+
+Tambien incluye documentacion sobre como ejecutar en [[RUN.md]]
