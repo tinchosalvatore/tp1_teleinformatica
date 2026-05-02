@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# limpie los import basura de Miniedit
 import argparse
 from mininet.net import Mininet
 from mininet.node import Node, Host, OVSKernelSwitch
@@ -25,15 +24,14 @@ class LinuxRouter(Node):
 def construir_red_wan(num_sucursales):
     net = Mininet(topo=None, build=False)
 
-    info('\n*** Creando Router de la Casa Matriz\n')
-    r_matriz = net.addNode('R_Matriz', cls=LinuxRouter)
-
-    info(f'*** Construyendo topología para {num_sucursales} sucursal(es)...\n')
+    info(f'\n*** Construyendo topología para {num_sucursales} sucursal(es)...\n')
     
+    r_matriz = net.addHost('R_Matriz', cls=LinuxRouter)
+
     # Armado dinámico de nodos y enlaces segun argumento
     for i in range(1, num_sucursales + 1):
         # Cálculos de IPs WAN (/29) 
-        base_wan = (i - 1) * 8    # el salto de red es cada 8 nodos
+        base_wan = (i - 1) * 8   # cada 8 nodos hay salto de red en /29
         ip_suc_wan = f'192.168.100.{base_wan + 1}/29' 
         
         # Cálculos de IPs LAN (/24)
@@ -41,21 +39,24 @@ def construir_red_wan(num_sucursales):
         ip_host1 = f'10.0.{i}.252/24'
         ip_host2 = f'10.0.{i}.253/24'
         ip_host3 = f'10.0.{i}.254/24'
-
-        # Creación de Nodos de la Sucursal  
-        r_suc = net.addNode(f'R_Suc{i}', cls=LinuxRouter, ip=ip_suc_wan)
-        s_suc = net.addSwitch(f's{i}', cls=OVSKernelSwitch)
         
-        # Agregamos los 3 hosts a la topología
+        # Instanciamos los HOSTS primero:
         h1_suc = net.addHost(f'H1_Suc{i}', cls=Host, ip=ip_host1, defaultRoute=f'via {gateway_lan}')
         h2_suc = net.addHost(f'H2_Suc{i}', cls=Host, ip=ip_host2, defaultRoute=f'via {gateway_lan}')
         h3_suc = net.addHost(f'H3_Suc{i}', cls=Host, ip=ip_host3, defaultRoute=f'via {gateway_lan}')
 
-        # Enlaces WAN y LAN
+        # SWITCHES
+        s_suc = net.addSwitch(f's{i}', cls=OVSKernelSwitch, failMode='standalone') 
+        # el standalone logra que el switch se comporte como un layer2 tradicional, solucionando un bug por falta
+        # de controladores en el kernel del ubuntu de la VM 
+        
+        # ROUTERS (Se agregan como host pasándole nuestra clase LinuxRouter)
+        r_suc = net.addHost(f'R_Suc{i}', cls=LinuxRouter, ip=ip_suc_wan)
+
+        # 4° ENLACES (WAN y LAN)
         net.addLink(r_suc, r_matriz, intfName1=f'R_Suc{i}-wan', intfName2=f'R_Matriz-wan{i}')
         net.addLink(r_suc, s_suc, intfName1=f'R_Suc{i}-lan')
         
-        # Conexion interna de los 3 hosts
         net.addLink(s_suc, h1_suc)
         net.addLink(s_suc, h2_suc)
         net.addLink(s_suc, h3_suc)
